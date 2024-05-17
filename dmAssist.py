@@ -144,32 +144,32 @@ class God:
         """
         return info.strip()
 
-def save_characters_to_file(filename="characters.json"):
+def save_to_file(data, filename):
     with open(filename, "w") as f:
-        json.dump([character.to_dict() for character in characters], f, indent=4)
+        json.dump([item.to_dict() for item in data], f, indent=4)
 
-def load_characters_from_file(filename="characters.json"):
+def load_from_file(filename, cls):
     try:
         with open(filename, "r") as f:
             data = json.load(f)
-            return [Character.from_dict(char) for char in data]
+            return [cls.from_dict(item) for item in data]
     except FileNotFoundError:
         return []
 
-def save_gods_to_file(filename="gods.json"):
-    with open(filename, "w") as f:
-        json.dump([god.to_dict() for god in gods], f, indent=4)
+def load_characters():
+    return load_from_file("characters.json", Character)
 
-def load_gods_from_file(filename="gods.json"):
-    try:
-        with open(filename, "r") as f:
-            data = json.load(f)
-            return [God.from_dict(god) for god in data]
-    except FileNotFoundError:
-        return []
+def save_characters(characters):
+    save_to_file(characters, "characters.json")
 
-characters = load_characters_from_file()
-gods = load_gods_from_file()
+def load_gods():
+    return load_from_file("gods.json", God)
+
+def save_gods(gods):
+    save_to_file(gods, "gods.json")
+
+characters = load_characters()
+gods = load_gods()
 
 def get_best_character_for_stat(skill):
     best_character = None
@@ -197,8 +197,7 @@ def search_gods(god_name=None):
     if god_name:
         god = next((g for g in gods if g.name.lower() == god_name.lower()), None)
         if god:
-            return (f"{god.name}: Patronage - {', '.join(god.patronage)}, Symbols - {god.symbols}, "
-                    f"Notable Followers - {', '.join(god.notable_followers)}, Notes - {god.notes}")
+            return god.display_info()
         return f"No god named {god_name} found."
     else:
         return "\n".join([god.name for god in gods])
@@ -280,7 +279,7 @@ def handle_add_character_command():
         
         new_character = Character(name, race, char_class, level, sub_class, abilities, proficiencies, actions, god)
         characters.append(new_character)
-        save_characters_to_file()
+        save_characters(characters)
         print(f"{name} has been added successfully.")
     except ValueError as e:
         print(f"Error: {e}. Please try again.")
@@ -318,7 +317,7 @@ def handle_edit_character_command():
         else:
             print("Invalid attribute.")
 
-        save_characters_to_file()
+        save_characters(characters)
         print(f"{character.name}'s details have been updated successfully.")
     else:
         print(f"No character named {name} found.")
@@ -333,7 +332,7 @@ def handle_add_god_command():
         
         new_god = God(name, patronage, symbols, set(notable_followers), notes)
         gods.append(new_god)
-        save_gods_to_file()
+        save_gods(gods)
         print(f"{name} has been added successfully.")
     except ValueError as e:
         print(f"Error: {e}. Please try again.")
