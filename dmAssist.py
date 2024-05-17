@@ -3,7 +3,7 @@
 import json
 
 class Character:
-    def __init__(self, name, race, char_class, level, sub_class, ability_modifiers, proficiencies, actions, god):
+    def __init__(self, name, race, char_class, level, sub_class, ability_modifiers, proficiencies, actions, god, proficiency_bonus):
         self.name = name
         self.race = race
         self.char_class = char_class
@@ -13,25 +13,9 @@ class Character:
         self.proficiencies = proficiencies
         self.actions = actions
         self.god = god
-
-    def calculate_proficiency_bonus(self):
-        if 1 <= self.level <= 4:
-            return 2
-        elif 5 <= self.level <= 8:
-            return 3
-        elif 9 <= self.level <= 12:
-            return 4
-        elif 13 <= self.level <= 16:
-            return 5
-        elif 17 <= self.level <= 20:
-            return 6
-        else:
-            return 0
+        self.proficiency_bonus = proficiency_bonus  # Store proficiency bonus directly
 
     def get_stat(self, stat):
-        if stat.lower() in self.ability_modifiers:
-            return self.ability_modifiers[stat.lower()]
-        
         skill_to_ability = {
             "athletics": "strength",
             "acrobatics": "dexterity",
@@ -54,15 +38,23 @@ class Character:
             "social interaction": "charisma"
         }
 
+        # Check if the stat is an ability score
+        if stat.lower() in self.ability_modifiers:
+            # If the stat is an ability score, return its modifier
+            return self.ability_modifiers[stat.lower()]
+
+        # Determine the ability score associated with the skill
         ability = skill_to_ability.get(stat.lower(), None)
         if not ability:
             return None
 
+        # Get the ability modifier for the skill's corresponding ability
         ability_modifier = self.ability_modifiers.get(ability, 0)
         total_modifier = ability_modifier
 
+        # Add proficiency bonus if the character is proficient in the skill
         if stat.lower() in self.proficiencies:
-            total_modifier += self.calculate_proficiency_bonus()
+            total_modifier += self.proficiency_bonus
 
         return total_modifier
 
@@ -76,7 +68,8 @@ class Character:
             "ability_modifiers": self.ability_modifiers,
             "proficiencies": self.proficiencies,
             "actions": self.actions,
-            "god": self.god
+            "god": self.god,
+            "proficiency_bonus": self.proficiency_bonus  # Save proficiency bonus
         }
 
     @classmethod
@@ -90,7 +83,8 @@ class Character:
             data["ability_modifiers"],
             data["proficiencies"],
             data["actions"],
-            data["god"]
+            data["god"],
+            data["proficiency_bonus"]  # Load proficiency bonus
         )
 
     def display_info(self):
@@ -104,6 +98,7 @@ class Character:
         Proficiencies: {', '.join(self.proficiencies)}
         Actions: {self.actions}
         God: {self.god}
+        Proficiency Bonus: {self.proficiency_bonus}
         """
         return info.strip()
 
@@ -276,8 +271,9 @@ def handle_add_character_command():
             "actions": int(input(f"Enter the number of actions {name} can perform: "))
         }
         god = input(f"Enter the god {name} worships: ")
+        proficiency_bonus = int(input(f"Enter the proficiency bonus for {name}: "))
         
-        new_character = Character(name, race, char_class, level, sub_class, abilities, proficiencies, actions, god)
+        new_character = Character(name, race, char_class, level, sub_class, abilities, proficiencies, actions, god, proficiency_bonus)
         characters.append(new_character)
         save_characters(characters)
         print(f"{name} has been added successfully.")
@@ -290,7 +286,7 @@ def handle_edit_character_command():
     
     if character:
         print(f"Editing {character.name}.")
-        print("Enter the attribute you want to edit (name, race, char_class, level, sub_class, ability_modifiers, proficiencies, actions, god): ")
+        print("Enter the attribute you want to edit (name, race, char_class, level, sub_class, ability_modifiers, proficiencies, actions, god, proficiency_bonus): ")
         attribute = input().lower()
 
         if attribute == "name":
@@ -314,6 +310,8 @@ def handle_edit_character_command():
             character.actions["actions"] = int(input("Enter new number of actions: "))
         elif attribute == "god":
             character.god = input("Enter new god: ")
+        elif attribute == "proficiency_bonus":
+            character.proficiency_bonus = int(input("Enter new proficiency bonus: "))
         else:
             print("Invalid attribute.")
 
@@ -434,7 +432,7 @@ def handle_command(user_input):
 
 def main():
     while True:
-        user_input = input("What would you like to do? (Type Help for list of commands): ").lower()
+        user_input = input("What would you like to do? (type help for a list of commands): ").lower()
         if not handle_command(user_input):
             break
 
