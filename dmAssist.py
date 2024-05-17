@@ -10,10 +10,10 @@ class Character:
         self.level = level
         self.sub_class = sub_class
         self.ability_modifiers = ability_modifiers
-        self.proficiencies = proficiencies
+        self.proficiencies = [proficiency.lower() for proficiency in proficiencies]  # Lowercase proficiency names
         self.actions = actions
         self.god = god
-        self.proficiency_bonus = proficiency_bonus  # Store proficiency bonus directly
+        self.proficiency_bonus = proficiency_bonus
 
     def get_stat(self, stat):
         skill_to_ability = {
@@ -38,13 +38,14 @@ class Character:
             "social interaction": "charisma"
         }
 
+        stat = stat.lower()  # Lowercase stat to ensure case-insensitivity
+
         # Check if the stat is an ability score
-        if stat.lower() in self.ability_modifiers:
-            # If the stat is an ability score, return its modifier
-            return self.ability_modifiers[stat.lower()]
+        if stat in self.ability_modifiers:
+            return self.ability_modifiers[stat]
 
         # Determine the ability score associated with the skill
-        ability = skill_to_ability.get(stat.lower(), None)
+        ability = skill_to_ability.get(stat, None)
         if not ability:
             return None
 
@@ -53,7 +54,7 @@ class Character:
         total_modifier = ability_modifier
 
         # Add proficiency bonus if the character is proficient in the skill
-        if stat.lower() in self.proficiencies:
+        if stat in self.proficiencies:
             total_modifier += self.proficiency_bonus
 
         return total_modifier
@@ -69,7 +70,7 @@ class Character:
             "proficiencies": self.proficiencies,
             "actions": self.actions,
             "god": self.god,
-            "proficiency_bonus": self.proficiency_bonus  # Save proficiency bonus
+            "proficiency_bonus": self.proficiency_bonus
         }
 
     @classmethod
@@ -84,7 +85,7 @@ class Character:
             data["proficiencies"],
             data["actions"],
             data["god"],
-            data["proficiency_bonus"]  # Load proficiency bonus
+            data["proficiency_bonus"]
         )
 
     def display_info(self):
@@ -264,7 +265,7 @@ def handle_add_character_command():
         abilities = {}
         for ability in ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"]:
             abilities[ability] = int(input(f"Enter {name}'s {ability} modifier: "))
-        proficiencies = input(f"Enter {name}'s proficiencies (comma separated): ").split(", ")
+        proficiencies = input(f"Enter {name}'s proficiencies (comma separated): ").lower().split(", ")
         actions = {
             "bonus_actions": input(f"Can {name} perform bonus actions? (True/False): ").lower() == "true",
             "extra_attacks": int(input(f"Enter the number of extra attacks {name} has: ")),
@@ -303,7 +304,7 @@ def handle_edit_character_command():
             for ability in ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"]:
                 character.ability_modifiers[ability] = int(input(f"Enter new {ability} modifier: "))
         elif attribute == "proficiencies":
-            character.proficiencies = input("Enter new proficiencies (comma separated): ").split(", ")
+            character.proficiencies = input("Enter new proficiencies (comma separated): ").lower().split(", ")
         elif attribute == "actions":
             character.actions["bonus_actions"] = input("Can perform bonus actions? (True/False): ").lower() == "true"
             character.actions["extra_attacks"] = int(input("Enter new number of extra attacks: "))
