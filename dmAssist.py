@@ -434,7 +434,7 @@ def handle_command(user_input):
 
 def main():
     while True:
-        user_input = input("What would you like to do? (e.g., perception check, all worships, Spike worship, god search Habit, god of greed, Habit Followers, Spike info, add character, edit character, add god, help, quit): ").lower()
+        user_input = input("What would you like to do? (Type Help for list of commands): ").lower()
         if not handle_command(user_input):
             break
 
