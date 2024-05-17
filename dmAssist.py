@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import json
 
 class Character:
@@ -26,7 +28,10 @@ class Character:
         else:
             return 0
 
-    def get_stat(self, skill):
+    def get_stat(self, stat):
+        if stat.lower() in self.ability_modifiers:
+            return self.ability_modifiers[stat.lower()]
+        
         skill_to_ability = {
             "athletics": "strength",
             "acrobatics": "dexterity",
@@ -46,17 +51,17 @@ class Character:
             "intimidation": "charisma",
             "performance": "charisma",
             "persuasion": "charisma",
-            "social interaction": "charisma"  # Example custom skill
+            "social interaction": "charisma"
         }
 
-        ability = skill_to_ability.get(skill, None)
+        ability = skill_to_ability.get(stat.lower(), None)
         if not ability:
-            return None  # If the skill is not found in skill_to_ability
+            return None
 
         ability_modifier = self.ability_modifiers.get(ability, 0)
         total_modifier = ability_modifier
 
-        if skill in self.proficiencies:
+        if stat.lower() in self.proficiencies:
             total_modifier += self.calculate_proficiency_bonus()
 
         return total_modifier
@@ -88,6 +93,20 @@ class Character:
             data["god"]
         )
 
+    def display_info(self):
+        info = f"""
+        Name: {self.name}
+        Race: {self.race}
+        Class: {self.char_class}
+        Level: {self.level}
+        Subclass: {self.sub_class}
+        Ability Modifiers: {self.ability_modifiers}
+        Proficiencies: {', '.join(self.proficiencies)}
+        Actions: {self.actions}
+        God: {self.god}
+        """
+        return info.strip()
+
 class God:
     def __init__(self, name, patronage, symbols, notable_followers, notes):
         self.name = name
@@ -96,47 +115,34 @@ class God:
         self.notable_followers = notable_followers
         self.notes = notes
 
-characters = [
-    Character(
-        name="Spike",
-        race="Dragonborn",
-        char_class="Paladin",
-        level=3,
-        sub_class="Oath of Ancients",
-        ability_modifiers={"strength": 3, "dexterity": 2, "constitution": 2, "intelligence": 1, "wisdom": 1, "charisma": 4},
-        proficiencies=["intimidation", "persuasion"],
-        actions={"bonus_actions": True, "extra_attacks": 1, "actions": 2},
-        god="Habit"
-    ),
-    Character(
-        name="Gandalf",
-        race="Human",
-        char_class="Wizard",
-        level=3,
-        sub_class="School of Divination",
-        ability_modifiers={"strength": 1, "dexterity": 2, "constitution": 3, "intelligence": 5, "wisdom": 4, "charisma": 3},
-        proficiencies=["arcana", "history"],
-        actions={"bonus_actions": True, "extra_attacks": 0, "actions": 1},
-        god="Iluvatar"
-    )
-]
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "patronage": self.patronage,
+            "symbols": self.symbols,
+            "notable_followers": list(self.notable_followers),
+            "notes": self.notes
+        }
 
-gods = [
-    God(
-        name="Habit",
-        patronage=["chaos", "entropy", "greed"],
-        symbols="Rabbits",
-        notable_followers={"Spike", "Asmodeus"},
-        notes="Habit has a pet snake named Nigel"
-    ),
-    God(
-        name="Iluvatar",
-        patronage=["creation", "life"],
-        symbols="Tree",
-        notable_followers={"Gandalf", "Frodo"},
-        notes="Iluvatar is the all-father of creation"
-    )
-]
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            data["name"],
+            data["patronage"],
+            data["symbols"],
+            set(data["notable_followers"]),
+            data["notes"]
+        )
+
+    def display_info(self):
+        info = f"""
+        Name: {self.name}
+        Patronage: {', '.join(self.patronage)}
+        Symbols: {self.symbols}
+        Notable Followers: {', '.join(self.notable_followers)}
+        Notes: {self.notes}
+        """
+        return info.strip()
 
 def save_characters_to_file(filename="characters.json"):
     with open(filename, "w") as f:
@@ -150,7 +156,20 @@ def load_characters_from_file(filename="characters.json"):
     except FileNotFoundError:
         return []
 
+def save_gods_to_file(filename="gods.json"):
+    with open(filename, "w") as f:
+        json.dump([god.to_dict() for god in gods], f, indent=4)
+
+def load_gods_from_file(filename="gods.json"):
+    try:
+        with open(filename, "r") as f:
+            data = json.load(f)
+            return [God.from_dict(god) for god in data]
+    except FileNotFoundError:
+        return []
+
 characters = load_characters_from_file()
+gods = load_gods_from_file()
 
 def get_best_character_for_stat(skill):
     best_character = None
@@ -162,26 +181,29 @@ def get_best_character_for_stat(skill):
             best_character = character
     return best_character
 
-def all_worships():
+def list_all_worships():
     return "\n".join([f"{character.name} worships {character.god}." for character in characters])
 
+def find_character_by_name(name):
+    return next((char for char in characters if char.name.lower() == name.lower()), None)
+
 def character_worship(character_name):
-    for character in characters:
-        if character.name.lower() == character_name.lower():
-            return f"{character.name} worships {character.god}."
+    character = find_character_by_name(character_name)
+    if character:
+        return f"{character.name} worships {character.god}."
     return f"No character named {character_name} found."
 
 def search_gods(god_name=None):
     if god_name:
-        for god in gods:
-            if god.name.lower() == god_name.lower():
-                return (f"{god.name}: Patronage - {', '.join(god.patronage)}, Symbols - {god.symbols}, "
-                        f"Notable Followers - {', '.join(god.notable_followers)}, Notes - {god.notes}")
+        god = next((g for g in gods if g.name.lower() == god_name.lower()), None)
+        if god:
+            return (f"{god.name}: Patronage - {', '.join(god.patronage)}, Symbols - {god.symbols}, "
+                    f"Notable Followers - {', '.join(god.notable_followers)}, Notes - {god.notes}")
         return f"No god named {god_name} found."
     else:
         return "\n".join([god.name for god in gods])
 
-def search_patronage(aspect):
+def search_god_of(aspect):
     for god in gods:
         if aspect.lower() in [patron.lower() for patron in god.patronage]:
             return f"The god of {aspect} is {god.name}."
@@ -222,13 +244,13 @@ def handle_god_search_command(parts):
         result = search_gods()
         print(result)
 
-def handle_patronage_command(parts):
-    if len(parts) > 1:
-        aspect = " ".join(parts[1:])  # e.g., "greed" from "patronage greed"
-        result = search_patronage(aspect)
+def handle_god_of_command(parts):
+    if len(parts) > 2:
+        aspect = " ".join(parts[2:])  # e.g., "greed" from "god of greed"
+        result = search_god_of(aspect)
         print(result)
     else:
-        print("Please specify the aspect to search for (e.g., patronage greed).")
+        print("Please specify the aspect to search for (e.g., god of greed).")
 
 def handle_followers_command(parts):
     if len(parts) > 1:
@@ -263,6 +285,99 @@ def handle_add_character_command():
     except ValueError as e:
         print(f"Error: {e}. Please try again.")
 
+def handle_edit_character_command():
+    name = input("Enter the name of the character to edit: ")
+    character = find_character_by_name(name)
+    
+    if character:
+        print(f"Editing {character.name}.")
+        print("Enter the attribute you want to edit (name, race, char_class, level, sub_class, ability_modifiers, proficiencies, actions, god): ")
+        attribute = input().lower()
+
+        if attribute == "name":
+            character.name = input("Enter new name: ")
+        elif attribute == "race":
+            character.race = input("Enter new race: ")
+        elif attribute == "char_class":
+            character.char_class = input("Enter new class: ")
+        elif attribute == "level":
+            character.level = int(input("Enter new level: "))
+        elif attribute == "sub_class":
+            character.sub_class = input("Enter new subclass: ")
+        elif attribute == "ability_modifiers":
+            for ability in ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"]:
+                character.ability_modifiers[ability] = int(input(f"Enter new {ability} modifier: "))
+        elif attribute == "proficiencies":
+            character.proficiencies = input("Enter new proficiencies (comma separated): ").split(", ")
+        elif attribute == "actions":
+            character.actions["bonus_actions"] = input("Can perform bonus actions? (True/False): ").lower() == "true"
+            character.actions["extra_attacks"] = int(input("Enter new number of extra attacks: "))
+            character.actions["actions"] = int(input("Enter new number of actions: "))
+        elif attribute == "god":
+            character.god = input("Enter new god: ")
+        else:
+            print("Invalid attribute.")
+
+        save_characters_to_file()
+        print(f"{character.name}'s details have been updated successfully.")
+    else:
+        print(f"No character named {name} found.")
+
+def handle_add_god_command():
+    try:
+        name = input("Enter god's name: ")
+        patronage = input("Enter god's patronage (comma separated): ").split(", ")
+        symbols = input("Enter god's symbols: ")
+        notable_followers = input("Enter notable followers (comma separated): ").split(", ")
+        notes = input("Enter any additional notes: ")
+        
+        new_god = God(name, patronage, symbols, set(notable_followers), notes)
+        gods.append(new_god)
+        save_gods_to_file()
+        print(f"{name} has been added successfully.")
+    except ValueError as e:
+        print(f"Error: {e}. Please try again.")
+
+def handle_info_command(parts):
+    if len(parts) >= 2:
+        name = " ".join(parts[:-1])  # e.g., "Spike" from "Spike info"
+        character = find_character_by_name(name)
+        if character:
+            print(character.display_info())
+            return
+        
+        god = next((g for g in gods if g.name.lower() == name.lower()), None)
+        if god:
+            print(god.display_info())
+            return
+        
+        print(f"No character or god named {name} found.")
+    else:
+        print("Please specify the name to search for (e.g., Spike info).")
+
+def handle_stat_command(parts):
+    if len(parts) == 2:
+        character_name, stat = parts[0], parts[1].lower()
+        if character_name.lower() == "all":
+            for character in characters:
+                stat_value = character.get_stat(stat)
+                if stat_value is not None:
+                    print(f"{character.name}'s {stat.capitalize()}: {stat_value}")
+                else:
+                    print(f"{character.name} does not have a {stat.capitalize()} stat.")
+        else:
+            character = find_character_by_name(character_name)
+            if character:
+                stat_value = character.get_stat(stat)
+                if stat_value is not None:
+                    print(f"{character.name}'s {stat.capitalize()}: {stat_value}")
+                else:
+                    print(f"{character.name} does not have a {stat.capitalize()} stat.")
+            else:
+                print(f"No character named {character_name} found.")
+    else:
+        print("Please specify the character and stat to check (e.g., Spike Perception or All Perception).")
+
 def display_help():
     help_text = """
     Available commands:
@@ -270,40 +385,59 @@ def display_help():
     - all worships: List all characters and their gods.
     - <character> worship: Check which god a specific character worships (e.g., Spike worship).
     - god search [<god name>]: Search for information about a specific god (e.g., god search Habit) or list all gods.
-    - patronage <aspect>: Find the god who is the patron of a given aspect (e.g., patronage greed).
+    - god of <aspect>: Find the god who is the patron of a given aspect (e.g., god of greed).
     - [god name] Followers: List all characters who worship a specific god (e.g., Habit Followers).
+    - <name> info: Display information about a specific character or god (e.g., Spike info).
     - add character: Add a new character to the list.
+    - edit character: Edit an existing character.
+    - add god: Add a new god to the list.
+    - <character> <proficiency/ability>: Get a specific character's proficiency or ability modifier (e.g., Spike Perception).
+    - All <proficiency/ability>: Get all characters' proficiency or ability modifiers (e.g., All Perception).
     - help: Display this help message.
     - quit: Exit the program.
     """
     print(help_text)
 
+def handle_command(user_input):
+    parts = user_input.split()
+    command = parts[-1]
+    
+    if user_input == "quit":
+        return False
+    elif user_input == "help":
+        display_help()
+    elif "check" in user_input:
+        handle_check_command(parts)
+    elif user_input == "all worships":
+        print(list_all_worships())
+    elif command == "worship" and len(parts) > 1:
+        handle_worship_command(parts)
+    elif command == "search" and len(parts) > 2 and parts[1] == "god":
+        handle_god_search_command(parts)
+    elif parts[0] == "god" and parts[1] == "of":
+        handle_god_of_command(parts)
+    elif command == "followers":
+        handle_followers_command(parts)
+    elif command == "info":
+        handle_info_command(parts)
+    elif user_input == "add character":
+        handle_add_character_command()
+    elif user_input == "edit character":
+        handle_edit_character_command()
+    elif user_input == "add god":
+        handle_add_god_command()
+    elif len(parts) == 2:
+        handle_stat_command(parts)
+    else:
+        print("Unknown command. Please try again.")
+    
+    return True
+
 def main():
     while True:
-        user_input = input("What would you like to do? (e.g., perception check, all worships, Spike worship, god search Habit, patronage greed, Habit Followers, add character, help, quit): ").lower()
-        parts = user_input.split()
-        command = parts[-1]
-        
-        if user_input == "quit":
+        user_input = input("What would you like to do? (e.g., perception check, all worships, Spike worship, god search Habit, god of greed, Habit Followers, Spike info, add character, edit character, add god, help, quit): ").lower()
+        if not handle_command(user_input):
             break
-        elif user_input == "help":
-            display_help()
-        elif "check" in user_input:
-            handle_check_command(parts)
-        elif user_input == "all worships":
-            print(all_worships())
-        elif command == "worship" and len(parts) > 1:
-            handle_worship_command(parts)
-        elif command == "search" and len(parts) > 2 and parts[1] == "god":
-            handle_god_search_command(parts)
-        elif command == "patronage":
-            handle_patronage_command(parts)
-        elif command == "followers":
-            handle_followers_command(parts)
-        elif user_input == "add character":
-            handle_add_character_command()
-        else:
-            print("Unknown command. Please try again.")
 
 if __name__ == "__main__":
     main()
