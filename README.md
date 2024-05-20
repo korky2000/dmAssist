@@ -12,6 +12,13 @@ Welcome to DM Assist! Here are some commands
     - add god: Add a new god to the list.
     - <character> <proficiency/ability>: Get a specific character's proficiency or ability modifier (e.g., Spike Perception).
     - All <proficiency/ability>: Get all characters' proficiency or ability modifiers (e.g., All Perception).
+    - <character> <ability> st: Get a specific character's saving throw for an ability (e.g., Spike strength st).
+    - All <ability> st: Get all characters' saving throws for an ability (e.g., All strength st).
+    - All st: Get all saving throws for all characters.
+    - add shop: Add a new shop to the list.
+    - add town: Add a new town to the list.
+    - all shops: List all shops.
+    - [town] shops: List all shops in a specific town.
     - help: Display this help message.
     - quit: Exit the program.
 
