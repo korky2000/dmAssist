@@ -231,7 +231,45 @@ Patron Gods: {', '.join(self.patron_gods)}
 ------------------------
         """
         return info.strip()
+class Shopkeep:
+    def __init__(self, name, town, shop, relationships, notes):
+        self.name = name
+        self.town = town
+        self.shop = shop
+        self.relationships = relationships
+        self.notes = notes
 
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "town": self.town,
+            "shop": self.shop,
+            "relationships": self.relationships,
+            "notes": self.notes
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            data["name"],
+            data["town"],
+            data["shop"],
+            data["relationships"],
+            data["notes"]
+        )
+
+    def display_info(self):
+        info = f"""
+------------------------
+Name: {self.name}
+Town: {self.town}
+Shop: {self.shop}
+Relationships: {', '.join(self.relationships)}
+Notes: {self.notes}
+------------------------
+        """
+        return info.strip()
+    
 def save_to_file(data, filename):
     with open(filename, "w") as f:
         json.dump([item.to_dict() for item in data], f, indent=4)
@@ -289,6 +327,9 @@ def list_all_worships():
 def find_character_by_name(name):
     return next((char for char in characters if char.name.lower() == name.lower()), None)
 
+def find_god_by_name(name):
+    return next((g for g in gods if g.name.lower() == name.lower()), None)
+
 def character_worship(character_name):
     character = find_character_by_name(character_name)
     if character:
@@ -297,7 +338,7 @@ def character_worship(character_name):
 
 def search_gods(god_name=None):
     if god_name:
-        god = next((g for g in gods if g.name.lower() == god_name.lower()), None)
+        god = find_god_by_name(god_name)
         if god:
             return god.display_info()
         return f"No god named {god_name} found."
@@ -445,6 +486,62 @@ def handle_add_god_command():
     except ValueError as e:
         print(f"Error: {e}. Please try again.")
 
+def save_shopkeeps(shopkeeps):
+    save_to_file(shopkeeps, "shopkeeps.json")
+
+def load_shopkeeps():
+    return load_from_file("shopkeeps.json", Shopkeep)
+
+def handle_add_shopkeep_command():
+    try:
+        name = input("Enter shopkeep's name: ")
+        town = input("Enter the town where the shopkeep is located: ")
+        shop = input("Enter the shop the shopkeep manages: ")
+        relationships = input("Enter relationships (comma separated): ").split(", ")
+        notes = input("Enter any additional notes: ")
+
+        new_shopkeep = Shopkeep(name, town, shop, relationships, notes)
+        shopkeeps.append(new_shopkeep)
+        save_shopkeeps(shopkeeps)
+        print(f"{name} has been added successfully.")
+    except ValueError as e:
+        print(f"Error: {e}. Please try again.")
+
+def handle_edit_shopkeep_command():
+    name = input("Enter the name of the shopkeep to edit: ")
+    shopkeep = next((sk for sk in shopkeeps if sk.name.lower() == name.lower()), None)
+    
+    if shopkeep:
+        print(f"Editing {shopkeep.name}.")
+        print("Enter the attribute you want to edit (name, town, shop, relationships, notes): ")
+        attribute = input().lower()
+
+        if attribute == "name":
+            shopkeep.name = input("Enter new name: ")
+        elif attribute == "town":
+            shopkeep.town = input("Enter new town: ")
+        elif attribute == "shop":
+            shopkeep.shop = input("Enter new shop: ")
+        elif attribute == "relationships":
+            shopkeep.relationships = input("Enter new relationships (comma separated): ").split(", ")
+        elif attribute == "notes":
+            shopkeep.notes = input("Enter new notes: ")
+        else:
+            print("Invalid attribute.")
+
+        save_shopkeeps(shopkeeps)
+        print(f"{shopkeep.name}'s details have been updated successfully.")
+    else:
+        print(f"No shopkeep named {name} found.")
+
+def handle_list_shopkeeps_command():
+    if shopkeeps:
+        for shopkeep in shopkeeps:
+            print(shopkeep.display_info())
+    else:
+        print("No shopkeeps available.")
+
+
 def handle_info_command(parts):
     if len(parts) >= 2:
         name = " ".join(parts[:-1])
@@ -453,7 +550,7 @@ def handle_info_command(parts):
             print(character.display_info())
             return
         
-        god = next((g for g in gods if g.name.lower() == name.lower()), None)
+        god = find_god_by_name(name)
         if god:
             print(god.display_info())
             return
@@ -462,6 +559,33 @@ def handle_info_command(parts):
         
     else:
         print("Please specify the name to search for (e.g., Spike info).")
+
+def handle_edit_god_command():
+    name = input("Enter the name of the god to edit: ")
+    god = find_god_by_name(name)
+    
+    if god:
+        print(f"Editing {god.name}.")
+        print("Enter the attribute you want to edit (name, patronage, symbols, notable_followers, notes): ")
+        attribute = input().lower()
+
+        if attribute == "name":
+            god.name = input("Enter new name: ")
+        elif attribute == "patronage":
+            god.patronage = input("Enter new patronage (comma separated): ").split(", ")
+        elif attribute == "symbols":
+            god.symbols = input("Enter new symbols: ")
+        elif attribute == "notable_followers":
+            god.notable_followers = input("Enter new notable followers (comma separated): ").split(", ")
+        elif attribute == "notes":
+            god.notes = input("Enter new notes: ")
+        else:
+            print("Invalid attribute.")
+
+        save_gods(gods)
+        print(f"{god.name}'s details have been updated successfully.")
+    else:
+        print(f"No god named {name} found.")
 
 def handle_stat_command(parts):
     if len(parts) == 2:
@@ -566,6 +690,7 @@ def display_help():
     - <character> worship: Check which god a specific character worships (e.g., Spike worship).
     - god search [<god name>]: Search for information about a specific god (e.g., god search Habit) or list all gods.
     - god of <aspect>: Find the god who is the patron of a given aspect (e.g., god of greed).
+    - edit god: Edit a god
     - [god name] Followers: List all characters who worship a specific god (e.g., Habit Followers).
     - <name> info: Display information about a specific character or god (e.g., Spike info).
     - add character: Add a new character to the list.
@@ -585,9 +710,23 @@ def display_help():
     """
     print(help_text)
 
+def handle_skill_command(parts):
+    if len(parts) == 2:
+        character_name, skill = parts[0], parts[1].lower()
+        character = find_character_by_name(character_name)
+        if character:
+            skill_value = character.get_stat(skill)
+            if skill_value is not None:
+                print(f"{character.name}'s {skill.capitalize()} skill value: {skill_value}")
+            else:
+                print(f"{character.name} does not have a {skill.capitalize()} skill.")
+        else:
+            print(f"No character named {character_name} found.")
+    else:
+        print("Please specify the character and skill (e.g., Spike Perception).")
+
 def handle_command(user_input):
     parts = user_input.split()
-    command = parts[-1]
 
     if user_input == "quit":
         return False
@@ -595,40 +734,69 @@ def handle_command(user_input):
         display_help()
     elif "check" in user_input:
         handle_check_command(parts)
-    elif "st" in user_input:
+    elif len(parts) >= 3 and parts[-1].lower() == "st":
         handle_st_command(parts)
     elif user_input == "all worships":
         print(list_all_worships())
-    elif command == "worship" and len(parts) > 1:
+    elif len(parts) > 1 and parts[-1].lower() == "worship":
         handle_worship_command(parts)
-    elif command == "search" and len(parts) > 2 and parts[1] == "god":
+    elif len(parts) > 2 and parts[0].lower() == "god" and parts[1].lower() == "search":
         handle_god_search_command(parts)
-    elif parts[0] == "god" and parts[1] == "of":
+    elif len(parts) > 2 and parts[0].lower() == "god" and parts[1].lower() == "of":
         handle_god_of_command(parts)
-    elif command == "followers":
+    elif len(parts) > 1 and parts[-1].lower() == "followers":
         handle_followers_command(parts)
-    elif command == "info":
+    elif len(parts) > 1 and parts[-1].lower() == "info":
         handle_info_command(parts)
+    elif user_input.startswith("edit god"):
+        handle_edit_god_command()
+    elif user_input.startswith("edit character"):
+        handle_edit_character_command()
     elif user_input == "add character":
         handle_add_character_command()
-    elif user_input == "edit character":
-        handle_edit_character_command()
     elif user_input == "add god":
         handle_add_god_command()
     elif user_input == "add shop":
         handle_add_shop_command()
     elif user_input == "add town":
         handle_add_town_command()
+    elif user_input == "add shopkeep":
+        handle_add_shopkeep_command()
     elif user_input == "all shops":
         handle_all_shops_command()
-    elif parts[-1].lower() == "shops":
+    elif len(parts) > 1 and parts[-1].lower() == "shops":
         handle_town_shops_command(parts)
+    elif user_input == "bruh":
+        print("bruh")
     elif len(parts) == 2:
-        handle_stat_command(parts)
+        handle_skill_command(parts)
+
     else:
         print("Unknown command. Please try again.")
     
     return True
+
+def handle_all_shops_command():
+    if shops:
+        for shop in shops:
+            print(shop.display_info())
+    else:
+        print("No shops available.")
+
+def handle_town_shops_command(parts):
+    town_name = " ".join(parts[:-1])
+    town_shops = [shop for shop in shops if shop.town.lower() == town_name.lower()]
+    if town_shops:
+        for shop in town_shops:
+            print(shop.display_info())
+    else:
+        print(f"No shops found in {town_name}.")
+
+characters = load_characters()
+gods = load_gods()
+shops = load_shops()
+towns = load_towns()
+shopkeeps = load_shopkeeps()
 
 def main():
     while True:
